@@ -74,6 +74,7 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate {
            // код, который мы хотим вызвать через 1 секунду
             guard let self = self else { return }
             
+            self.imageView.layer.borderWidth = 0
             self.showNextQuestionOrResults()
         }
         // разблокировать кнопки ответа
@@ -82,25 +83,16 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate {
     
     private func showNextQuestionOrResults() {
         
-        self.imageView.layer.borderWidth = 0
         // если последний вопрос
         if currentQuestionIndex == questionAmount - 1 {
             
-            // увеличить кол-во сыгранных игр за все время
-            statisticService?.total += questionAmount
-            // увеличить  кол-во верных ответов за все время
-            statisticService?.correct += correctAnswers
-            
+            let bestGame = statisticService?.store(correct: correctAnswers, total: questionAmount)
+
+
             guard let gamesCount = statisticService?.gamesCount,
-                  var bestGame = statisticService?.bestGame,
+                  let bestGame = statisticService?.bestGame,
                   let totalAccuracy = statisticService?.totalAccuracy else {
                 return
-            }
-            
-            // проверить превосходит ли результат рекорд, если да, то перезаписать в userDefaults
-            if bestGame.correct <= correctAnswers {
-                bestGame = statisticService?.store(correct: correctAnswers, total: questionAmount) ?? bestGame
-
             }
             
             let text =

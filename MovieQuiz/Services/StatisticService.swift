@@ -10,8 +10,6 @@ import Foundation
 protocol StatisticService {
     func store(correct count: Int, total amount: Int) -> GameRecord
     var totalAccuracy: Double { get }
-    var total: Int { get set }
-    var correct: Int { get set }
     var gamesCount: Int { get }
     var bestGame: GameRecord { get }
 }
@@ -34,7 +32,7 @@ final class StatisticServiceImplementation: StatisticService {
                 let total = try? JSONDecoder().decode(Int.self, from: dataTotal) else {
                 return 0
             }
-            let accuracy: Double = (Double(correct) / Double(total) * 100)
+            let accuracy: Double = (Double(correct) /  Double(total) * 100)
             return accuracy
         }
     }
@@ -114,12 +112,18 @@ final class StatisticServiceImplementation: StatisticService {
     }
     
     func store(correct count: Int, total amount: Int) -> GameRecord {
-        bestGame = GameRecord(correct: count, total: amount, date: Date())
-        guard let data = try? JSONEncoder().encode(bestGame) else {
-            print("Unable to save new record")
-            return bestGame
-        }
-        userDefaults.set(data, forKey: Keys.bestGame.rawValue)
-        return bestGame
+        total += amount
+        correct += count
+        
+        let bestGameNew = GameRecord(correct: count, total: amount, date: Date())
+        
+        if bestGame <= bestGameNew {
+            guard let data = try? JSONEncoder().encode(bestGameNew) else {
+                print("Unable to save new record")
+                return bestGame
+            }
+            userDefaults.set(data, forKey: Keys.bestGame.rawValue)
+            return bestGameNew
+        } else { return bestGame }
     }
 }
