@@ -18,7 +18,7 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate {
     private var correctAnswers = 0
     
     // общее кол-во вопросов
-    private let questionAmount: Int = 4
+    private let questionAmount: Int = 10
     
     private var questionFactory: QuestionFactoryProtocol?
     private var currentQuestion: QuizQuestion?
@@ -90,7 +90,7 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate {
 
 
             guard let gamesCount = statisticService?.gamesCount,
-                  let bestGame = statisticService?.bestGame,
+                  let bestGame = bestGame,
                   let totalAccuracy = statisticService?.totalAccuracy else {
                 return
             }
@@ -119,10 +119,10 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate {
             }
         }
         else {
-             // идём в состояние "Вопрос показан"
-             currentQuestionIndex += 1
-             // показать следующий вопрос
-             questionFactory?.requestNextQuestion()
+            // идём в состояние "Вопрос показан"
+            currentQuestionIndex += 1
+            // показать следующий вопрос
+            questionFactory?.requestNextQuestion()
         }
         // заблокировать кнопки после нажатия
         blockAnswerButtons(blockButtons: true)

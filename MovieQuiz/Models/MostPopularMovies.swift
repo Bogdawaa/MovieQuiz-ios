@@ -18,7 +18,7 @@ struct MostPopularMovie: Codable {
         case title = "fullTitle"
         case rating = "imDbRating"
         case imageURL = "image"
-        }
+    }
     
     let title: String
     let rating: String
