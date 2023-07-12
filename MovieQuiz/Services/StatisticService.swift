@@ -8,10 +8,10 @@
 import Foundation
 
 protocol StatisticService {
-    func store(correct count: Int, total amount: Int) -> GameRecord
     var totalAccuracy: Double { get }
     var gamesCount: Int { get }
     var bestGame: GameRecord { get }
+    func store(correct count: Int, total amount: Int) -> GameRecord
 }
 
 
@@ -26,9 +26,7 @@ final class StatisticServiceImplementation: StatisticService {
     
     // общая точность ответов
     var totalAccuracy: Double {
-        get {
-            return Double(correct) /  Double(total) * 100
-        }
+            Double(correct) /  Double(total) * 100
     }
     
     // сумма всех сыгранных игр
