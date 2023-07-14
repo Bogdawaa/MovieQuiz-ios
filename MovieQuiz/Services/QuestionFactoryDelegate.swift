@@ -10,5 +10,5 @@ import Foundation
 protocol QuestionFactoryDelegate: AnyObject {
     func didRecieveNextQuestion(question: QuizQuestion?)
     func didLoadFromServer() // данные успешно загрузились
-    func didFailToLoadData(with error: Error) // ошибка загрузки с сервера
+    func didFailToLoadData(with error: Error) // ошибка загрузки данных
 }

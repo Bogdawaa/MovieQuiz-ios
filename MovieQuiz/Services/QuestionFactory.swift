@@ -8,7 +8,11 @@
 import Foundation
 
 class QuestionFactory: QuestionFactoryProtocol {
-        
+    
+    private enum ImageError: Error {
+        case codeError
+    }
+    
     private var moviesLoader: MoviesLoading
     private var movies: [MostPopularMovie] = []
     
@@ -22,6 +26,8 @@ class QuestionFactory: QuestionFactoryProtocol {
     func requestNextQuestion() {
         DispatchQueue.global().async { [weak self] in
             guard let self = self else { return }
+            
+            
             let index = (0..<movies.count).randomElement() ?? 0
             
             guard let movie = self.movies[safe: index] else { return }
@@ -32,11 +38,15 @@ class QuestionFactory: QuestionFactoryProtocol {
                 imageData = try Data(contentsOf: movie.resizedImage)
             } catch {
                 print("Failed to load image")
-                self.delegate?.didFailToLoadData(with: "Не удалось загрузить постер" as! Error)
+                DispatchQueue.main.async {
+                    self.delegate?.didFailToLoadData(with: error)
+                }
             }
+            
             let rating = Float(movie.rating) ?? 0
-            let text = "Рейтинг этого фильма больше чем 7?"
-            let correctAnswer = rating > 7
+            let generatedRating = generateMovieRating()
+            let text = "Рейтинг этого фильма больше чем \(generatedRating)?"
+            let correctAnswer = Int(rating) > generatedRating
             
             let question = QuizQuestion(image: imageData,
                                         text: text,
@@ -47,6 +57,10 @@ class QuestionFactory: QuestionFactoryProtocol {
                 self.delegate?.didRecieveNextQuestion(question: question)
             }
         }
+    }
+    
+    func generateMovieRating() -> Int {
+        return Int.random(in: 1...9)
     }
     
     func loadData() {

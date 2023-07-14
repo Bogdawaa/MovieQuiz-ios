@@ -29,6 +29,7 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate {
     // MARK: - Lifecycle
     override func viewDidLoad() {
         super.viewDidLoad()
+        
         // настройка индикатора загрузки
         activityIndicator.hidesWhenStopped = true
         questionFactory = QuestionFactory(moviesLoader: MoviesLoader(), delegate: self)
@@ -36,12 +37,33 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate {
         alertPresenter = AlertPresenter(viewController: self)
         // контроллер статистики
         statisticService = StatisticServiceImplementation()
-        // включить индикатор загрузки данных
+
         showLoadingAnimation()
-        // загрузить данные по сети
         questionFactory?.loadData()
-        
     }
+    
+    // MARK: - public
+    func didRecieveNextQuestion(question: QuizQuestion?) {
+       guard let question = question else {
+           return
+       }
+       currentQuestion = question
+       let viewModel = convert(model: question)
+       DispatchQueue.main.async { [weak self] in
+           self?.show(quiz: viewModel)
+       }
+    }
+    
+    func didLoadFromServer() {
+        activityIndicator.stopAnimating()
+        questionFactory?.requestNextQuestion()
+    }
+    
+    func didFailToLoadData(with error: Error) {
+        showNetworkError(message: error.localizedDescription)
+    }
+    
+    // MARK: - private
     
     // метод конвертации, который принимает моковый вопрос и возвращает вью модель для экрана вопроса
     private func convert(model: QuizQuestion) -> QuizStepViewModel {
@@ -60,9 +82,9 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate {
     
     private func showAnswerResult(isCorrect: Bool) {
        // метод красит рамку
-        imageView.layer.masksToBounds = true // даём разрешение на рисование рамки
-        imageView.layer.borderWidth = 8 // толщина рамки
-        imageView.layer.cornerRadius = 20 // радиус скругления углов рамки
+        imageView.layer.masksToBounds = true
+        imageView.layer.borderWidth = 8
+        imageView.layer.cornerRadius = 20
         imageView.layer.borderColor = isCorrect ? UIColor.ypGreen.cgColor : UIColor.ypRed.cgColor
         
         // если ответ пользователя верный, увеличить счетчик
@@ -71,23 +93,21 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate {
         }
         
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
-           // код, который мы хотим вызвать через 1 секунду
             guard let self = self else { return }
             
             self.imageView.layer.borderWidth = 0
             self.showNextQuestionOrResults()
         }
-        // разблокировать кнопки ответа
         blockAnswerButtons(blockButtons: false)
     }
     
+    // вызывает следующий вопрос или показывает результат квиза
     private func showNextQuestionOrResults() {
         
         // если последний вопрос
         if currentQuestionIndex == questionAmount - 1 {
             
             let bestGame = statisticService?.store(correct: correctAnswers, total: questionAmount)
-
 
             guard let gamesCount = statisticService?.gamesCount,
                   let bestGame = bestGame,
@@ -113,18 +133,13 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate {
                 
                 self.currentQuestionIndex = 0
                 self.correctAnswers = 0
-            
-                // сгенерировать следующий вопрос
                 questionFactory?.requestNextQuestion()
             }
         }
         else {
-            // идём в состояние "Вопрос показан"
             currentQuestionIndex += 1
-            // показать следующий вопрос
             questionFactory?.requestNextQuestion()
         }
-        // заблокировать кнопки после нажатия
         blockAnswerButtons(blockButtons: true)
     }
     
@@ -136,26 +151,6 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate {
     
     private func showLoadingAnimation() {
         activityIndicator.startAnimating()
-    }
-    
-    func didRecieveNextQuestion(question: QuizQuestion?) {
-       guard let question = question else {
-           return
-       }
-       currentQuestion = question
-       let viewModel = convert(model: question)
-       DispatchQueue.main.async { [weak self] in
-           self?.show(quiz: viewModel)
-       }
-    }
-    
-    func didLoadFromServer() {
-        activityIndicator.stopAnimating()
-        questionFactory?.requestNextQuestion()
-    }
-    
-    func didFailToLoadData(with error: Error) {
-        showNetworkError(message: error.localizedDescription)
     }
     
     private func showNetworkError(message: String) {
