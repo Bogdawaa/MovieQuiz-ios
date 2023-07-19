@@ -12,10 +12,9 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate {
     
     private let presenter = MovieQuizPresenter()
     
-    // Счетчик правильных ответов
+//    // Счетчик правильных ответов
     private var correctAnswers = 0
     private var questionFactory: QuestionFactoryProtocol?
-    private var currentQuestion: QuizQuestion?
     private var alertPresenter: AlertPresenter?
     private var statisticService: StatisticService?
     
@@ -35,14 +34,7 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate {
     
     // MARK: - public
     func didRecieveNextQuestion(question: QuizQuestion?) {
-       guard let question = question else {
-           return
-       }
-       currentQuestion = question
-        let viewModel = presenter.convert(model: question)
-       DispatchQueue.main.async { [weak self] in
-           self?.show(quiz: viewModel)
-       }
+        presenter.didRecieveNextQuestion(question: question)
     }
     
     func didLoadFromServer() {
@@ -56,10 +48,37 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate {
     
     // MARK: - private
     
-    private func show(quiz step: QuizStepViewModel) {
+    func show(quiz step: QuizStepViewModel) {
         imageView.image = step.image
         textLabel.text = step.question
         counterLabel.text = step.questionNumber
+    }
+    
+    func show(quiz result: QuizResultsViewModel) {
+        var message = result.text
+        if let statisticService = statisticService {
+            let bestGame = statisticService.store(correct: presenter.correctAnswers, total: presenter.questionAmount)
+            
+            let gamesCount = statisticService.gamesCount
+            let totalAccuracy = statisticService.totalAccuracy
+            
+            let text =
+                """
+                Вы ответили на: \(presenter.correctAnswers) из \(presenter.questionAmount)
+                Количество сыгранных квизов: \(gamesCount)
+                Рекорд: \(bestGame.correct)(\(bestGame.date.dateTimeString))
+                Средняя точность: \(String(format: "%.2f", totalAccuracy))%
+                """
+            message = text
+        }
+        let alertModel = AlertModel(title: result.title, message: message, buttonText: result.buttonText) { [weak self] in
+            guard let self = self else { return }
+            
+            presenter.resetQuestionIndex()
+            presenter.correctAnswers = 0
+            presenter.questionFactory?.requestNextQuestion()
+        }
+        alertPresenter?.show(in: self, alertModel: alertModel)
     }
     
     func showAnswerResult(isCorrect: Bool) {
@@ -78,56 +97,17 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate {
             guard let self = self else { return }
             
             self.imageView.layer.borderWidth = 0
-            self.showNextQuestionOrResults()
+            self.presenter.correctAnswers = self.correctAnswers
+            self.presenter.questionFactory = self.questionFactory
+            self.presenter.showNextQuestionOrResults()
         }
         blockAnswerButtons(blockButtons: false)
     }
     
-    // вызывает следующий вопрос или показывает результат квиза
-    private func showNextQuestionOrResults() {
-        
-        // если последний вопрос
-        if presenter.isLastQuestion() {
-            
-            let bestGame = statisticService?.store(correct: correctAnswers, total: presenter.questionAmount)
-
-            guard let gamesCount = statisticService?.gamesCount,
-                  let bestGame = bestGame,
-                  let totalAccuracy = statisticService?.totalAccuracy else {
-                return
-            }
-            
-            let text =
-                """
-                Вы ответили на: \(correctAnswers) из \(presenter.questionAmount)
-                Количество сыгранных квизов: \(gamesCount)
-                Рекорд: \(bestGame.correct)(\(bestGame.date.dateTimeString))
-                Средняя точность: \(String(format: "%.2f", totalAccuracy))%
-                """
-            
-            let alertModel = AlertModel(title: "Этот раунд окончен",
-                                        message: text,
-                                        buttonText: "Сыграть еще раз")
-                
-            // отобразить алерт
-            alertPresenter?.show(in: self, alertModel: alertModel) { [weak self] _ in
-                guard let self = self else { return }
-                
-                
-                self.presenter.resetQuestionIndex()
-                self.correctAnswers = 0
-                questionFactory?.requestNextQuestion()
-            }
-        }
-        else {
-            self.presenter.encreaseQuestionIndex()
-            questionFactory?.requestNextQuestion()
-        }
-        blockAnswerButtons(blockButtons: true)
-    }
+    
     
     // функция блокировки кнопок ответа на вопрос. Принимает булевый параметр - блокировать да/нет
-    private func blockAnswerButtons(blockButtons: Bool) {
+    func blockAnswerButtons(blockButtons: Bool) {
         yesButton.isEnabled = blockButtons
         noButton.isEnabled = blockButtons
     }
@@ -137,28 +117,28 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate {
     }
     
     private func showNetworkError(message: String) {
-        let networkErrorModel = AlertModel(title: "Ошибка",
-                                           message: message,
-                                           buttonText: "Попробовать ещё раз")
+        let alert = UIAlertController(
+            title: "Ошибка",
+            message: message,
+            preferredStyle: .alert)
         
-        alertPresenter?.show(in: self, alertModel: networkErrorModel) { [weak self] _ in
+        let action = UIAlertAction(title: "Попробовать еще раз",
+                                   style: .default) { [weak self] _ in
             guard let self = self else { return }
             
-            self.presenter.resetQuestionIndex()
-            self.correctAnswers = 0
+            presenter.resetQuestionIndex()
+            presenter.correctAnswers = 0
             self.questionFactory?.requestNextQuestion()
         }
+        alert.addAction(action)
     }
     
     //MARK: - Actions
     @IBAction private func noButtonClicked(_ sender: UIButton) {
-        presenter.currentQuestion = currentQuestion
         presenter.noButtonClicked()
     }
     
     @IBAction private func yesButtonClicked(_ sender: UIButton) {
-        presenter.currentQuestion = currentQuestion
         presenter.yesButtonClicked()
     }
-    
 }

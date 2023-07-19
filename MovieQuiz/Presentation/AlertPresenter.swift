@@ -18,16 +18,17 @@ class AlertPresenter {
     }
     
     // отображение алерта
-    func show(in presenter: UIViewController, alertModel: AlertModel, handler: ((UIAlertAction) -> Void)? = nil) {
+    func show(in presenter: UIViewController, alertModel: AlertModel) {
         let alert = UIAlertController(
             title: alertModel.title,
             message: alertModel.message,
             preferredStyle: .alert)
-        alert.restorationIdentifier = "Game results"
         
         alert.view.accessibilityIdentifier = "Alert"
         
-        let action = UIAlertAction(title: alertModel.buttonText, style: .default, handler: handler)
+        let action = UIAlertAction(title: alertModel.buttonText, style: .default) { _ in
+            alertModel.completion()
+        }
         
         alert.addAction(action)
         viewController?.present(alert, animated: true, completion: {
