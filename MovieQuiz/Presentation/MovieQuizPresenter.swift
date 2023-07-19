@@ -9,9 +9,11 @@ import UIKit
 
 final class MovieQuizPresenter {
     
-    // общее кол-во вопросов
     let questionAmount: Int = 10
-    // Индекс текущего вопроса
+    
+    var currentQuestion: QuizQuestion?
+    weak var movieQuizViewController: MovieQuizViewController?
+
     private var currentQuestionIndex = 0
     
     func resetQuestionIndex() {
@@ -33,5 +35,22 @@ final class MovieQuizPresenter {
             question: model.text,
             questionNumber: "\(currentQuestionIndex + 1)/\(questionAmount)")
         return questionStep
+    }
+    
+    //MARK: - Actions
+    func noButtonClicked() {
+        guard let currentQuestion = currentQuestion else {
+            return
+        }
+        let givenAnswer = false
+        movieQuizViewController?.showAnswerResult(isCorrect: currentQuestion.correctAnswer == givenAnswer)
+    }
+    
+    func yesButtonClicked() {
+        guard let currentQuestion = currentQuestion else {
+            return
+        }
+        let givenAnswer = true
+        movieQuizViewController?.showAnswerResult(isCorrect: currentQuestion.correctAnswer == givenAnswer)
     }
 }
