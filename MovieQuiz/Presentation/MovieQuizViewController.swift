@@ -1,6 +1,6 @@
 import UIKit
 
-final class MovieQuizViewController: UIViewController {
+final class MovieQuizViewController: UIViewController, MovieQuizViewControllerProtocol {
     
     
     @IBOutlet private var imageView: UIImageView!
@@ -12,88 +12,60 @@ final class MovieQuizViewController: UIViewController {
     
     private var presenter: MovieQuizPresenter!
     
-    private var alertPresenter: AlertPresenter?
-    private var statisticService: StatisticService?
-    
     // MARK: - Lifecycle
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        // настройка индикатора загрузки
-        activityIndicator.hidesWhenStopped = true
-        alertPresenter = AlertPresenter(viewController: self)
-        statisticService = StatisticServiceImplementation()
         presenter = MovieQuizPresenter(movieQuizViewController: self)
-        showLoadingAnimation()
     }
     
-    // MARK: - public
-    func didRecieveNextQuestion(question: QuizQuestion?) {
-        presenter.didRecieveNextQuestion(question: question)
-    }
-    
+    // MARK: - public funcs 
     func show(quiz step: QuizStepViewModel) {
         imageView.image = step.image
+        imageView.layer.borderColor = UIColor.clear.cgColor
         textLabel.text = step.question
         counterLabel.text = step.questionNumber
     }
     
     func show(quiz result: QuizResultsViewModel) {
-        var message = result.text
-        if let statisticService = statisticService {
-            let bestGame = statisticService.store(correct: presenter.correctAnswers, total: presenter.questionAmount)
-            
-            let gamesCount = statisticService.gamesCount
-            let totalAccuracy = statisticService.totalAccuracy
-            
-            let text =
-                """
-                Вы ответили на: \(presenter.correctAnswers) из \(presenter.questionAmount)
-                Количество сыгранных квизов: \(gamesCount)
-                Рекорд: \(bestGame.correct)(\(bestGame.date.dateTimeString))
-                Средняя точность: \(String(format: "%.2f", totalAccuracy))%
-                """
-            message = text
-        }
-        let alertModel = AlertModel(title: result.title, message: message, buttonText: result.buttonText) { [weak self] in
+        let message = presenter.makeResultMessage()
+        
+        let alert = UIAlertController(title: result.title,
+                                      message: message,
+                                      preferredStyle: .alert)
+        
+        let action = UIAlertAction(title: result.buttonText, style: .default) { [weak self] _ in
             guard let self = self else { return }
             
-            presenter.restartGame()
+            self.presenter.restartGame()
         }
-        alertPresenter?.show(in: self, alertModel: alertModel)
+        alert.addAction(action)
+        self.present(alert, animated: true, completion: nil)
     }
     
-    func showAnswerResult(isCorrect: Bool) {
-       // метод красит рамку
+    func highlightImageBorder(isCorrectAnswer: Bool) {
         imageView.layer.masksToBounds = true
         imageView.layer.borderWidth = 8
         imageView.layer.cornerRadius = 20
-        imageView.layer.borderColor = isCorrect ? UIColor.ypGreen.cgColor : UIColor.ypRed.cgColor
-        
-        // если ответ пользователя верный, увеличить счетчик
-        presenter.didAnswer(isCorrectAnswer: isCorrect)
-        
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
-            guard let self = self else { return }
-            
-            self.imageView.layer.borderWidth = 0
-            self.presenter.showNextQuestionOrResults()
-        }
-        blockAnswerButtons(blockButtons: false)
+        imageView.layer.borderColor = isCorrectAnswer ? UIColor.ypGreen.cgColor : UIColor.ypRed.cgColor
     }
     
-    // функция блокировки кнопок ответа на вопрос. Принимает булевый параметр - блокировать да/нет
     func blockAnswerButtons(blockButtons: Bool) {
         yesButton.isEnabled = blockButtons
         noButton.isEnabled = blockButtons
     }
     
-    
-    func showLoadingAnimation() {
-        activityIndicator.startAnimating()
+    func showLoadingAnimation(isTrue: Bool) {
+        if isTrue {
+            activityIndicator.startAnimating()
+        } else {
+            activityIndicator.stopAnimating()
+        }
     }
     
     func showNetworkError(message: String) {
+        showLoadingAnimation(isTrue: false)
+        
         let alert = UIAlertController(
             title: "Ошибка",
             message: message,
@@ -103,10 +75,10 @@ final class MovieQuizViewController: UIViewController {
                                    style: .default) { [weak self] _ in
             guard let self = self else { return }
             
-            presenter.restartGame()
-            presenter.correctAnswers = 0
+            self.presenter.restartGame()
         }
         alert.addAction(action)
+        self.present(alert, animated: true)
     }
     
     //MARK: - Actions
