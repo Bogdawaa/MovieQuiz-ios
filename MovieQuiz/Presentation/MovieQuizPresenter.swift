@@ -7,21 +7,29 @@
 
 import UIKit
 
-final class MovieQuizPresenter {
-    
+final class MovieQuizPresenter: QuestionFactoryDelegate {
     
     let questionAmount: Int = 10
-    
     var correctAnswers = 0
-    var questionFactory: QuestionFactoryProtocol?
-    var currentQuestion: QuizQuestion?
-    weak var movieQuizViewController: MovieQuizViewController?
     
+    private var questionFactory: QuestionFactoryProtocol?
+    private var currentQuestion: QuizQuestion?
     private var currentQuestionIndex = 0
+    private weak var movieQuizViewController: MovieQuizViewController?
+    
+    init(movieQuizViewController: MovieQuizViewController) {
+        self.movieQuizViewController = movieQuizViewController
+        
+        questionFactory = QuestionFactory(moviesLoader: MoviesLoader(), delegate: self)
+        questionFactory?.loadData()
+        movieQuizViewController.showLoadingAnimation()
+    }
     
     // MARK: - funcs
-    func resetQuestionIndex() {
+    func restartGame() {
         currentQuestionIndex = 0
+        correctAnswers = 0
+        questionFactory?.requestNextQuestion()
     }
     
     func isLastQuestion() -> Bool {
@@ -30,6 +38,12 @@ final class MovieQuizPresenter {
     
     func encreaseQuestionIndex() {
         currentQuestionIndex += 1
+    }
+    
+    func didAnswer(isCorrectAnswer: Bool) {
+        if isCorrectAnswer {
+            correctAnswers += 1
+        }
     }
     
     // метод конвертации, который принимает моковый вопрос и возвращает вью модель для экрана вопроса
@@ -60,9 +74,18 @@ final class MovieQuizPresenter {
        }
     }
     
+    func didLoadFromServer() {
+        // hide indicator
+        questionFactory?.requestNextQuestion()
+    }
+    
+    func didFailToLoadData(with error: Error) {
+        let message = error.localizedDescription
+        movieQuizViewController?.showNetworkError(message: message)
+    }
+    
     // вызывает следующий вопрос или показывает результат квиза
     func showNextQuestionOrResults() {
-        
         if self.isLastQuestion() {
             let text = "Вы ответили на \(correctAnswers) из \(questionAmount), попробуйте еще раз!"
             
