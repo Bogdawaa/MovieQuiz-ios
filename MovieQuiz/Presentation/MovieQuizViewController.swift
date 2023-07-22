@@ -11,11 +11,12 @@ final class MovieQuizViewController: UIViewController, MovieQuizViewControllerPr
     @IBOutlet private var activityIndicator: UIActivityIndicatorView!
     
     private var presenter: MovieQuizPresenter!
-    
+    private var alertPresenter: AlertPresenter?
     // MARK: - Lifecycle
     override func viewDidLoad() {
         super.viewDidLoad()
         
+        alertPresenter = AlertPresenter(viewController: self)
         presenter = MovieQuizPresenter(movieQuizViewController: self)
     }
     
@@ -30,17 +31,12 @@ final class MovieQuizViewController: UIViewController, MovieQuizViewControllerPr
     func show(quiz result: QuizResultsViewModel) {
         let message = presenter.makeResultMessage()
         
-        let alert = UIAlertController(title: result.title,
-                                      message: message,
-                                      preferredStyle: .alert)
-        
-        let action = UIAlertAction(title: result.buttonText, style: .default) { [weak self] _ in
+        let model = AlertModel(title: result.title, message: message, buttonText: result.buttonText) { [weak self] in
             guard let self = self else { return }
             
             self.presenter.restartGame()
         }
-        alert.addAction(action)
-        self.present(alert, animated: true, completion: nil)
+        alertPresenter?.show(in: self, alertModel: model)
     }
     
     func highlightImageBorder(isCorrectAnswer: Bool) {
@@ -66,19 +62,11 @@ final class MovieQuizViewController: UIViewController, MovieQuizViewControllerPr
     func showNetworkError(message: String) {
         showLoadingAnimation(isTrue: false)
         
-        let alert = UIAlertController(
-            title: "Ошибка",
-            message: message,
-            preferredStyle: .alert)
-        
-        let action = UIAlertAction(title: "Попробовать еще раз",
-                                   style: .default) { [weak self] _ in
+        let model = AlertModel(title: "Ошибка", message: message, buttonText: "Попробовать еще раз") { [weak self] in
             guard let self = self else { return }
-            
             self.presenter.restartGame()
         }
-        alert.addAction(action)
-        self.present(alert, animated: true)
+        alertPresenter?.show(in: self, alertModel: model)
     }
     
     //MARK: - Actions

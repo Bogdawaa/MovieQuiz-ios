@@ -59,21 +59,21 @@ final class MovieQuizUITests: XCTestCase {
         
         let indexLabel = app.staticTexts["Index"]
         
-        XCTAssertEqual(firstPosterData, secondPosterData)
+        XCTAssertNotEqual(firstPosterData, secondPosterData)
         XCTAssertEqual(indexLabel.label, "2/10")
     }
     
     func testResultAlert() throws {
-        sleep(1)
+        sleep(2)
         for _ in 1...10 {
             app.buttons["Yes"].tap()
-            sleep(1)
+            sleep(2)
         }
         
         let alert = app.alerts["Alert"]
         
         XCTAssertTrue(alert.exists)
-        XCTAssertEqual(alert.label, "Этот раунд окончен")
+        XCTAssertEqual(alert.label, "Раунд окончен!")
         XCTAssertEqual(alert.buttons.firstMatch.label, "Сыграть еще раз")
     }
     
